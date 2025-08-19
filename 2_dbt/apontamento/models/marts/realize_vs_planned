@@ -1,0 +1,64 @@
+{{ config(
+    materialzed='table'
+) }}
+
+WITH apontamento AS (
+    SELECT
+        order_id,
+        order_date,
+        quantidade,
+        duration * 60 AS duration
+    FROM {{ ref('int_apontamento') }}
+),
+orders AS (
+    SELECT 
+        order_id,
+        codigo,
+        referencia,
+        linha,
+        grupo    
+    FROM {{ ref('int_orders') }}
+),
+tempo_medio_produtos AS (
+    SELECT
+        *
+    FROM 
+        average_time_b_product
+),
+orders_apontamento AS (
+    SELECT
+        b.order_id,
+        b.codigo,
+        b.referencia,
+        b.linha,
+        b.grupo,
+        a.order_date,
+        a.quantidade,
+        a.duration AS tempo_total_minutos,
+        c.avg_time_minutes    AS tempo_medio_por_produto,
+        c.avg_time_minutes * a.quantidade AS prevision
+    FROM apontamento a
+    JOIN 
+    orders b
+    ON a.order_id = b.order_id
+    JOIN
+    tempo_medio_produtos C 
+    ON b.codigo = c.codigo
+),
+resultado AS (
+    SELECT * FROM orders_apontamento
+),
+
+resultado_today AS (
+    SELECT * FROM resultado WHERE order_date::date = CURRENT_DATE
+),
+performace AS (
+	SELECT 
+		round(
+			(sum(tempo_total_minutos) /		
+			 sum(prevision)-1) * 100
+		,4) AS performace
+	FROM resultado_today
+	WHERE quantidade <> 0
+)
+select * from performace

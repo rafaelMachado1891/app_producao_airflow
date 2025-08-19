@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: apontamento
+    ##database: apontamento
+    schema: public
+    tables: 
+
+      - name: apontamento
+        description: dados pré formatados a partir do pandas
+        columns:
+         - name: ORDEMPRODUCAO
+           descrption: 'Numero da ordem de producao'
+           data_type: int
+           tests:
+            - not_null  # Garante que não há valores nulos
+            - unique    # Garante que os valores são únicos           
+         - name: DATA
+           descrption: 'Data do registro do apontamento'
+           data_type: date
+
+         - name: HORA
+           descrption: 'Horário do inicio do apontamento'
+           data_type: time
+         - name: "QUANTIDADE"
+           descrption: 'Quantidade produzida'
+           data_type: INTEGER
+           tests:
+            - accepted_values:  # Garante que os valores estão em uma lista específica
+                values: [0, 1, 2, 3, 4, 5]
+         - name: HORASAIDA
+           descrption: 'Horário do Termino do apontamento'
+           data_type: time
+         - name: DIFERENCATEMPO
+           descrption: 'tempo de produção da ordem'
+           data_type: time
+
+
+      - name: ORDERS
