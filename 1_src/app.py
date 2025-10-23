@@ -33,7 +33,7 @@ def carregar_dados(carga_completa=False):
         ultima_datahora = None  # Carga completa, então ignoramos o filtro
     else:
         ultima_datahora = transform.obter_ultima_data(engine)  # Obtém a última data de carga
-        df = extract.obter_lista_itens(token, primeira_carga=False)  # Carrega dados incrementais
+        df = extract.obter_lista_itens(token, primeira_carga=True)  # Carrega dados incrementais
 
     # Transformar os dados passando a última data correta
     df = transform.tratar_dados(df, ultima_datahora)
@@ -46,7 +46,7 @@ def carregar_dados(carga_completa=False):
                 connection.execution_options(isolation_level="AUTOCOMMIT").execute(
                     text(f"TRUNCATE TABLE {SCHEMA}.apontamento")
                 )
-            print("✅ Tabela truncada para carga completa.")
+            print("✅ Tabela dropada para carga completa.")
 
         # Insere os dados na tabela
         df.to_sql('apontamento', engine, if_exists='append', index=False, schema=SCHEMA)

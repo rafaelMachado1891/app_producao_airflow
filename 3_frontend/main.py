@@ -52,7 +52,7 @@ SELECT * FROM public_gold.orders_produced_by_week
 WHERE current_year = 2025
 """
 
-st.set_page_config(page_title="Dashboard de Preços do Bitcoin", layout="wide")
+st.set_page_config(page_title="acompanhamento producao", layout="wide")
 
 st.title('Apontamento de produção',)
 

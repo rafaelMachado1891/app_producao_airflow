@@ -73,7 +73,7 @@ if __name__ == "__main__":
     token = obter_token()
 
     # Definir se é primeira carga ou incremental (ajuste conforme necessário)
-    PRIMEIRA_CARGA = False  # Altere para True se quiser carregar tudo
+    PRIMEIRA_CARGA = True # Altere para True se quiser carregar tudo
 
     df = obter_lista_itens(token, primeira_carga=PRIMEIRA_CARGA)
     print(df.head())
