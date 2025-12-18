@@ -7,7 +7,7 @@ from {{ source('apontamento', 'ORDERS') }}
 )
 
 select 
-    "NUMERO",
+    "NUMERO"::TEXT AS "NUMERO",
     "CODIGO",
     "REFERENCIA",
     "LINHA",

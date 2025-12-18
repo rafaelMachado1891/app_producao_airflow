@@ -15,7 +15,7 @@ dados_tratados as (
 ), 
 dados_tipados AS (
     SELECT 
-        "ORDEMPRODUCAO"  ::INTEGER AS ORDER_ID,  
+        "ORDEMPRODUCAO"  ::TEXT AS ORDER_ID,  
         "DATAHORA"      ::TIMESTAMP AS ORDER_DATE,  
         "QUANTIDADE"    ::INTEGER AS QUANTIDADE,
         "DATAHORASAIDA" ::TIMESTAMP AS TERMINO,  

@@ -44,12 +44,12 @@ def carregar_dados(carga_completa=False):
             # Limpa a tabela antes de fazer a carga completa
             with engine.connect() as connection:
                 connection.execution_options(isolation_level="AUTOCOMMIT").execute(
-                    text(f"TRUNCATE TABLE {SCHEMA}.apontamento")
+                    text(f"DROP TABLE IF EXISTS {SCHEMA}.apontamento CASCADE" )
                 )
             print("✅ Tabela dropada para carga completa.")
 
         # Insere os dados na tabela
-        df.to_sql('apontamento', engine, if_exists='append', index=False, schema=SCHEMA)
+        df.to_sql('apontamento', engine, if_exists='replace', index=False, schema=SCHEMA)
         print("✅ Dados carregados com sucesso!")
     else:
         print("⚠️ Nenhum novo dado para carregar.")

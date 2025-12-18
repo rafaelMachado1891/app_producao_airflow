@@ -11,7 +11,7 @@ sources:
         columns:
          - name: ORDEMPRODUCAO
            descrption: 'Numero da ordem de producao'
-           data_type: int
+           data_type: TEXT
            tests:
             - not_null  # Garante que não há valores nulos
             - unique    # Garante que os valores são únicos           
