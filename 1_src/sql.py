@@ -26,10 +26,12 @@ def get_target_engine():
     SENHA = os.getenv('SENHA')
     return create_engine(f"postgresql://{USUARIO}:{SENHA}@{HOST}:{PORT}/{NAME}")
 
+schema = os.getenv("SCHEMA")
+
 target_engine = get_target_engine()
 with target_engine.connect() as connection:
     connection.execution_options(autocommit=True)  # Ativa o autocommit
-    connection.execute(text("DROP TABLE IF EXISTS ORDERS CASCADE"))
+    connection.execute(text(f'TRUNCATE TABLE  "{schema}"."ORDERS" CASCADE'))
         
 def execute_query(engine, query):
     """Executa uma consulta SQL no banco de dados e retorna um DataFrame com os resultados."""
@@ -131,7 +133,7 @@ def main():
         name='ORDERS',          # Nome da tabela de destino
         con=target_engine,           # Conexão com o banco de destino
         schema=os.getenv('SCHEMA'),  # Schema do banco de destino
-        if_exists='replace',          # Adicionar dados à tabela existente
+        if_exists='append',          # Adicionar dados à tabela existente
         index=False                  # Não incluir o índice do DataFrame
     )
     print("✅ Dados carregados com sucesso no banco de destino!")

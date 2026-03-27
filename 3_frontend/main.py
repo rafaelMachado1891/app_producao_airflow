@@ -49,7 +49,7 @@ SELECT * FROM public_gold.quantity_produced
 
 query_4 = """
 SELECT * FROM public_gold.orders_produced_by_week
-WHERE current_year = 2025
+WHERE current_year = 2026
 """
 
 st.set_page_config(page_title="acompanhamento producao", layout="wide")

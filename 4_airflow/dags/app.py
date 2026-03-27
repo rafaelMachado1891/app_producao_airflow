@@ -1,74 +1,100 @@
-import pandas as pd
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
 import os
-import extract
-import transform
-from time import sleep
-from airflow.decorators import dag, task
+import shlex
+from pathlib import Path
 
-# Carregar variáveis de ambiente
-load_dotenv()
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from pendulum import datetime
 
-HOST = os.getenv('HOST')
-PORT = os.getenv('PORT')
-NAME = os.getenv('NAME')
-USUARIO = os.getenv('USUARIO')
-SENHA = os.getenv('SENHA')
-SCHEMA = os.getenv('SCHEMA')
 
-# String de conexão com o banco de dados
-DATABASE_URL = f"postgresql://{USUARIO}:{SENHA}@{HOST}:{PORT}/{NAME}"
-engine = create_engine(DATABASE_URL)
+def _resolve_project_root() -> Path:
+    env_root = os.getenv("PIPELINE_PROJECT_ROOT")
+    local_repo_root = Path(__file__).resolve().parents[2]
 
-@dag(
-        dag_id="dados_sharepoint",
-        description="extração dos dados de apontamento de produção"
-        schedule="*/280 * * * *",
-        start_date=datetime(2025,8,19),
-        catchup=False
-)    
-def extracao_dados():
-    @task  
-    def carregar_dados(carga_completa=False):
-        """
-        Carrega os dados no banco de dados.
-        :param carga_completa: Se True, faz uma carga completa (substitui todos os dados). Se False, faz carga incremental.
-        """
-        # Extrair dados da API do SharePoint
-        token = extract.obter_token()
-        
-        if carga_completa:
-            df = extract.obter_lista_itens(token, primeira_carga=True)  # Carrega todos os dados
-            ultima_datahora = None  # Carga completa, então ignoramos o filtro
-        else:
-            ultima_datahora = transform.obter_ultima_data(engine)  # Obtém a última data de carga
-            df = extract.obter_lista_itens(token, primeira_carga=False)  # Carrega dados incrementais
+    candidates = []
+    if env_root:
+        candidates.append(Path(env_root))
 
-        # Transformar os dados passando a última data correta
-        df = transform.tratar_dados(df, ultima_datahora)
+    candidates.extend(
+        [
+            local_repo_root,
+            Path("/usr/local/airflow/include/project"),
+            Path("/opt/airflow/include/project"),
+        ]
+    )
 
-        # Carregar os dados no banco de dados
-        if not df.empty:
-            if carga_completa:
-                # Limpa a tabela antes de fazer a carga completa
-                with engine.connect() as connection:
-                    connection.execution_options(isolation_level="AUTOCOMMIT").execute(
-                        text(f"TRUNCATE TABLE {SCHEMA}.apontamento")
-                    )
-                print("✅ Tabela truncada para carga completa.")
+    for root in candidates:
+        if (root / "1_src" / "app.py").exists() and (
+            root / "2_dbt" / "apontamento" / "dbt_project.yml"
+        ).exists():
+            return root
 
-            # Insere os dados na tabela
-            df.to_sql('apontamento', engine, if_exists='append', index=False, schema=SCHEMA)
-            print("✅ Dados carregados com sucesso!")
-        else:
-            print("⚠️ Nenhum novo dado para carregar.")
-            
-    #if __name__ == "__main__":
-    #   while True:
-        
-     #       CARGA_COMPLETA = True  # Altere para False para carga incremental
-      #      df = carregar_dados(carga_completa=CARGA_COMPLETA)
-            # sleep(1800)
+    return Path(env_root) if env_root else local_repo_root
 
-extracao_dados()
+
+PROJECT_ROOT = _resolve_project_root()
+SRC_DIR = PROJECT_ROOT / "1_src"
+DBT_DIR = PROJECT_ROOT / "2_dbt" / "apontamento"
+
+
+def _build_task_env() -> dict[str, str]:
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(SRC_DIR)
+
+    # When Airflow runs in Docker and Postgres runs in a separate compose project,
+    # host.docker.internal lets the container reach the database published on the host.
+    env.setdefault("HOST", "host.docker.internal")
+    env.setdefault("PORT", "5433")
+
+    return env
+
+
+TASK_ENV = _build_task_env()
+
+default_args = {
+    "owner": "airflow",
+    "retries": 2,
+}
+
+
+with DAG(
+    dag_id="pipeline_sql_dbt_daily",
+    description="Executa sql.py uma vez por dia e depois roda dbt run.",
+    start_date=datetime(2025, 1, 1, tz="America/Sao_Paulo"),
+    schedule="0 0 * * *",
+    catchup=False,
+    default_args=default_args,
+    tags=["pipeline", "daily", "dbt"],
+) as sql_dbt_daily_dag:
+    run_sql = BashOperator(
+        task_id="run_sql_py",
+        bash_command=f"cd {shlex.quote(str(SRC_DIR))} && python sql.py",
+        env=TASK_ENV,
+    )
+
+    run_dbt = BashOperator(
+        task_id="run_dbt",
+        bash_command=(
+            f"cd {shlex.quote(str(DBT_DIR))} "
+            "&& dbt run --project-dir ."
+        ),
+        env=TASK_ENV,
+    )
+
+    run_sql >> run_dbt
+
+
+with DAG(
+    dag_id="pipeline_app_every_10_minutes",
+    description="Executa app.py a cada 10 minutos.",
+    start_date=datetime(2025, 1, 1, tz="America/Sao_Paulo"),
+    schedule="*/10 * * * *",
+    catchup=False,
+    default_args=default_args,
+    tags=["pipeline", "frequent", "app"],
+) as app_every_10_minutes_dag:
+    BashOperator(
+        task_id="run_app_py",
+        bash_command=f"cd {shlex.quote(str(SRC_DIR))} && python app.py",
+        env=TASK_ENV,
+    )
