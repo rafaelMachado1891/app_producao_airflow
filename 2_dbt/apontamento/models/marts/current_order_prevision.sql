@@ -3,6 +3,8 @@ with orders_apontamento as (
         order_id,
         order_date
     from {{ ref('int_apontamento') }}
+    where order_date::DATE = CURRENT_DATE AND
+    termino IS NULL
 
 ),
 orders_erp as (
@@ -13,39 +15,26 @@ orders_erp as (
         quantidade
     from {{ ref('int_orders') }}
 ),
-registro_atual as (
-    select 
-        max(order_date) as ultimo_registro
-    from orders_apontamento
-),
-ultima_order as (
-    select
-        order_id,
-        max(order_date) as ultimo_registro
-    from orders_apontamento
-    where 
-        order_date::DATE = CURRENT_DATE
-    group by 
-        order_id
+tempo_medio_producao AS (
+    SELECT 
+        referencia,
+        avg_time_minutes
+    
+    FROM {{ ref('average_time_b_product') }}
+       
 ),
 order_in_process as (
     select
         a.order_id,
-        b.ultimo_registro
-    from ultima_order a 
-    join registro_atual b 
-    on a.ultimo_registro = b.ultimo_registro
-),
-dados_orders as (
-    select 
-        a.order_id,
         b.referencia,
         b.quantidade,
-        a.ultimo_registro as inicio
-    from order_in_process a 
-    join 
-    orders_erp b 
-    on b.order_id = a.order_id
+        a.order_date,
+        C.avg_time_minutes * b.quantidade as prevision_time_minutes  
+        
+    from orders_apontamento a 
+    join orders_erp b 
+    on a.order_id = b.order_id
+    JOIN tempo_medio_producao c
+    on c.referencia = b.referencia
 )
-
-select * from dados_orders
+select * from order_in_process

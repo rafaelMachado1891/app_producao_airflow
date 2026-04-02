@@ -30,6 +30,7 @@ dados_agrupados AS (
         TERMINO,
         SUM(TEMPO) AS TEMPO_TOTAL_MINUTOS
     FROM dados_tipados
+   
     GROUP BY 
         ORDER_ID,
         ORDER_DATE,
