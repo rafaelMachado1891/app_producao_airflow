@@ -6,8 +6,6 @@ with int_apontamento as (
         TERMINO       as termino,
         TEMPO_TOTAL_MINUTOS as duration
     FROM {{ ref('stg_apontamento') }}
-    WHERE ORDER_DATE::DATE <> CURRENT_DATE
-      AND TERMINO IS NOT NULL
 ),
 ordens_erp as (
     SELECT 

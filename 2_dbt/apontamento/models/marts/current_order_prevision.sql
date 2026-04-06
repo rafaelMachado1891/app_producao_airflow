@@ -3,8 +3,9 @@ with orders_apontamento as (
         order_id,
         order_date
     from {{ ref('int_apontamento') }}
-    where order_date::DATE = CURRENT_DATE AND
-    termino IS NULL
+    where order_date >= CURRENT_DATE
+          AND order_date < CURRENT_DATE + INTERVAL '1 day'
+          AND  termino IS NULL
 
 ),
 orders_erp as (
