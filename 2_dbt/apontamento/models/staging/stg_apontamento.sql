@@ -16,9 +16,9 @@ dados_tratados as (
 dados_tipados AS (
     SELECT 
         "ORDEMPRODUCAO"  ::TEXT AS ORDER_ID,  
-        "DATAHORA"::TIMESTAMPTZ AT TIME ZONE 'America/Sao_Paulo' AS ORDER_DATE,  
+        "DATAHORA"::TIMESTAMP AS ORDER_DATE,  
         "QUANTIDADE"    ::INTEGER AS QUANTIDADE,
-        "DATAHORASAIDA" ::TIMESTAMPTZ AT TIME ZONE 'America/Sao_Paulo' AS TERMINO,  
+        "DATAHORASAIDA" ::TIMESTAMP  AS TERMINO,  
         "DIFERENCATEMPO" ::DECIMAL AS TEMPO
     FROM dados_tratados
 ),
